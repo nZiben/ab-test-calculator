@@ -3,7 +3,7 @@
 <head>
   <title>A/B Test Calculator by Gleb Mikhaylov</title>
   <style>
-
+    /* Ваши стили остаются без изменений */
     @media only screen and (max-width: 600px) {
       form {
         margin: 10px;
@@ -21,13 +21,11 @@
       }
     }
 
-    /* Основное оформление страницы */
     body {
       font-family: Arial, sans-serif;
       background-color: #333;
       color: #f2f2f2;
     }
-    /* Оформление элементов формы */
     form {
       margin: 20px;
       padding: 20px;
@@ -46,7 +44,6 @@
       color: #f2f2f2;
       background-color: #555;
     }
-    /* Оформление кнопки отправки */
     input[type="submit"] {
       background-color: #4CAF50;
       color: white;
@@ -55,27 +52,25 @@
       border: none;
       cursor: pointer;
     }
-    /* Оформление таблицы результатов */
     .result-table {
       margin: 20px;
       padding: 20px;
       background-color: #444;
       border-collapse: collapse;
       border-color: #f2f2f2;
-      width: 100%;      /* Ширина 100% от контейнера */
-      max-width: 600px; /* Максимальная ширина 600px */
-      text-align: left; /* Выравнивание таблицы по левому краю */
+      width: 100%;
+      max-width: 600px;
+      text-align: left;
     }
-
     .result-table td, .result-table th {
-      border: 1px solid #f2f2f2; /* Границы ячеек */
-      text-align: center;        /* Выравнивание текста по центру */
-      padding: 8px;              /* Отступы для эстетики */
+      border: 1px solid #f2f2f2;
+      text-align: center;
+      padding: 8px;
     }
-
   </style>
-  <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
-  <script defer src="https://pyscript.net/latest/pyscript.js"></script>
+  <!-- Обновлённые ссылки на PyScript -->
+  <link rel="stylesheet" href="https://unpkg.com/pyscript@latest/pyscript.css" />
+  <script defer src="https://unpkg.com/pyscript@latest/pyscript.js"></script>
   <py-config>
     packages = ["numpy","statsmodels"]
   </py-config>
@@ -94,12 +89,8 @@
         power = float(Element("power").element.value)
         alpha = float(Element("level").element.value)
 
-        # Создание объекта для анализа мощности
         analysis = NormalIndPower()
-
         effect_size = sm.stats.proportion_effectsize(baseline, baseline + mde)
-
-        # Расчёт размера выборки
         result = analysis.solve_power(effect_size=effect_size, power=power, alpha=alpha, ratio=ratio, alternative='two-sided')
         sample_size = int(np.ceil(result))
 
@@ -141,7 +132,6 @@
         Element('decision').write(decision)
         Element('stat-sig').write(alpha)
   </script>
-
 </head>
 <body>
   <h1>A/B Test Calculator by Gleb Mikhaylov</h1>
@@ -166,8 +156,6 @@
   <p>Control Group Size: <span id="control-group"></span></p>
   <p>Test Group Size: <span id="test-group"></span></p>
 
-<!--   evaluate experiment -->
-
   <h1>Evaluate Results of an A/B Test</h1>
   <form onsubmit="return false;">
 
@@ -189,8 +177,6 @@
   <p>Decision: <span id="decision"></span></p>
   <p>Statistical Significance: <span id="stat-sig"></span></p>
   
-  <!-- таблица с результатами эксперимента: Размер группы, Кол-во конверсий, CR -->
-
   <table class="result-table">
     <tr>
       <th>Group</th>
@@ -212,10 +198,7 @@
     </tr>
   </table>
   
- 
   <p>Difference: <span id="diff"></span></p>
   <p>Pvalue: <span id="pvalue"></span></p>
-
-
 </body>
 </html>
