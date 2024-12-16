@@ -21,13 +21,13 @@
       }
     }
 
-    /* Add some basic styling for the entire page */
+    /* Основное оформление страницы */
     body {
       font-family: Arial, sans-serif;
       background-color: #333;
       color: #f2f2f2;
     }
-    /* Style the form elements */
+    /* Оформление элементов формы */
     form {
       margin: 20px;
       padding: 20px;
@@ -46,7 +46,7 @@
       color: #f2f2f2;
       background-color: #555;
     }
-    /* Style the submit button */
+    /* Оформление кнопки отправки */
     input[type="submit"] {
       background-color: #4CAF50;
       color: white;
@@ -55,102 +55,92 @@
       border: none;
       cursor: pointer;
     }
-    /* style for result-table */
+    /* Оформление таблицы результатов */
     .result-table {
-    margin: 20px;
-    padding: 20px;
-    background-color: #444;
-    border-collapse: collapse;
-    border-color: #f2f2f2;
-    width: 100%;      /* Set the width to 100% of the container */
-    max-width: 600px; /* Maximum width of 600px */
-    text-align: left; /* Align the table to the left */
-}
+      margin: 20px;
+      padding: 20px;
+      background-color: #444;
+      border-collapse: collapse;
+      border-color: #f2f2f2;
+      width: 100%;      /* Ширина 100% от контейнера */
+      max-width: 600px; /* Максимальная ширина 600px */
+      text-align: left; /* Выравнивание таблицы по левому краю */
+    }
 
-.result-table td, .result-table th {
-    border: 1px solid #f2f2f2; /* Add border to table cells */
-    text-align: center;        /* Center the text in cells */
-    padding: 8px;              /* Add some padding for aesthetics */
-}
-
+    .result-table td, .result-table th {
+      border: 1px solid #f2f2f2; /* Границы ячеек */
+      text-align: center;        /* Выравнивание текста по центру */
+      padding: 8px;              /* Отступы для эстетики */
+    }
 
   </style>
-      <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
-      <script defer src="https://pyscript.net/latest/pyscript.js"></script>
-      <py-config>
-        packages = ["numpy","statsmodels"]
-      </py-config>
+  <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
+  <script defer src="https://pyscript.net/latest/pyscript.js"></script>
+  <py-config>
+    packages = ["numpy","statsmodels"]
+  </py-config>
 
-    <script type="py">
+  <script type="py">
+    from pyscript import Element
+    import numpy as np
+    from statsmodels.stats.power import NormalIndPower
+    import statsmodels.api as sm
+    from statsmodels.stats.proportion import proportions_ztest
+
+    def get_data():
+        baseline = float(Element("baseline").element.value)
+        mde = float(Element("mde").element.value)
+        ratio = float(Element("ratio").element.value)
+        power = float(Element("power").element.value)
+        alpha = float(Element("level").element.value)
+
+        # Создание объекта для анализа мощности
+        analysis = NormalIndPower()
+
+        effect_size = sm.stats.proportion_effectsize(baseline, baseline + mde)
+
+        # Расчёт размера выборки
+        result = analysis.solve_power(effect_size=effect_size, power=power, alpha=alpha, ratio=ratio, alternative='two-sided')
+        sample_size = int(np.ceil(result))
+
+        Element('control-group').write(round(sample_size))
+        Element('test-group').write(round(sample_size * ratio))
     
-        def get_data():
-    
-            import numpy as np
-            from statsmodels.stats.power import NormalIndPower
-            import statsmodels.api as sm
-    
-            baseline = float(Element("baseline").element.value)
-            mde = float(Element("mde").element.value)
-            ratio = float(Element("ratio").element.value)
-            power = float(Element("power").element.value)
-            alpha = float(Element("level").element.value)
-    
-            # print(baseline,mde,ratio,power,alpha)
-    
-            # Create the power analysis object
-            analysis = NormalIndPower()
-    
-            effect_size = sm.stats.proportion_effectsize(baseline, baseline + mde)
-    
-            # Calculate the sample size
-            result = analysis.solve_power(effect_size=effect_size, power=power, alpha=alpha, ratio=ratio, alternative='two-sided')
-            sample_size = int(np.ceil(result))
-    
-            Element('control-group').write(round(sample_size))
-            Element('test-group').write(round(sample_size*ratio))
+    def evaluate_experiment():
+        alpha = float(Element("level").element.value)
+
+        actual_cgs = float(Element("actual-cgs").element.value)
+        conversions_c = float(Element("conversions-c").element.value)
+        actual_tgs = float(Element("actual-tgs").element.value)
+        conversions_t = float(Element("conversions-t").element.value)
+
+        _, p_value = proportions_ztest([conversions_c, conversions_t], [actual_cgs, actual_tgs], alternative='two-sided')
         
-        def evaluate_experiment():
-    
-            import numpy as np
-            from statsmodels.stats.proportion import proportions_ztest
+        cr_c = conversions_c / actual_cgs
+        cr_t = conversions_t / actual_tgs
 
-            alpha = float(Element("level").element.value)
+        difference = cr_t - cr_c
 
-            actual_cgs = float(Element("actual-cgs").element.value)
-            converstions_c = float(Element("converstions-c").element.value)
-            actual_tgs = float(Element("actual-tgs").element.value)
-            converstions_t = float(Element("converstions-t").element.value)
+        if p_value < alpha:
+            decision = "Positive"
+        else:
+            decision = "Negative"
 
-            _, p_value = proportions_ztest([converstions_c, converstions_t], [actual_cgs, actual_tgs], alternative='two-sided')
-            
-            cr_c = converstions_c/actual_cgs
-            cr_t = converstions_t/actual_tgs
+        Element('cgs').write(round(actual_cgs))
+        Element('tgs').write(round(actual_tgs))
 
-            difference = cr_t - cr_c
+        Element('cntr-c').write(round(conversions_c))
+        Element('test-c').write(round(conversions_t))
 
-            if p_value < alpha:
-              decision = "Positive"
-            else:
-              decision = "Negative"
+        Element('cr-c').write(round(cr_c, 4))
+        Element('cr-t').write(round(cr_t, 4))
 
-            Element('cgs').write(round(actual_cgs))
-            Element('tgs').write(round(actual_tgs))
+        Element('diff').write(round(difference, 4))
+        Element('pvalue').write(round(p_value, 5))
 
-            Element('cntr-c').write(round(converstions_c))
-            Element('test-c').write(round(converstions_t))
-
-            Element('cr-c').write(round(cr_c,4))
-            Element('cr-t').write(round(cr_t,4))
-
-            Element('diff').write(round(difference,4))
-
-            Element('pvalue').write(round(p_value,5))
-
-            Element('decision').write(decision)
-            Element('stat-sig').write(alpha)
-
-    
-    </script>
+        Element('decision').write(decision)
+        Element('stat-sig').write(alpha)
+  </script>
 
 </head>
 <body>
@@ -178,20 +168,20 @@
 
 <!--   evaluate experiment -->
 
-  <h1>Evalute Results of an A/B Test</h1>
+  <h1>Evaluate Results of an A/B Test</h1>
   <form onsubmit="return false;">
 
-    <label for="baseline">Actual Control Group Size:</label>
+    <label for="actual-cgs">Actual Control Group Size:</label>
     <input type="text" id="actual-cgs" name="actual-cgs" class="py-input" value="1000"><br>
 
-    <label for="mde">Number of Converstions in Control Group:</label>
-    <input type="text" id="converstions-c" name="converstions-c" class="py-input" value="30"><br>
+    <label for="conversions-c">Number of Conversions in Control Group:</label>
+    <input type="text" id="conversions-c" name="conversions-c" class="py-input" value="30"><br>
 
-    <label for="ratio">Actual Test Group Size:</label>
+    <label for="actual-tgs">Actual Test Group Size:</label>
     <input type="text" id="actual-tgs" name="actual-tgs" class="py-input" value="1000"><br>
 
-    <label for="power">Number of Converstions in Test Group:</label>
-    <input type="text" id="converstions-t" name="converstions-t" class="py-input" value="40"><br>
+    <label for="conversions-t">Number of Conversions in Test Group:</label>
+    <input type="text" id="conversions-t" name="conversions-t" class="py-input" value="40"><br>
 
     <input type="submit" value="Evaluate Experiment" id="btn-load" class="py-button" py-click="evaluate_experiment()">
   </form>
@@ -199,13 +189,13 @@
   <p>Decision: <span id="decision"></span></p>
   <p>Statistical Significance: <span id="stat-sig"></span></p>
   
-  <!-- table with experiments result: Group size, Number or converstion, CR -->
+  <!-- таблица с результатами эксперимента: Размер группы, Кол-во конверсий, CR -->
 
   <table class="result-table">
     <tr>
       <th>Group</th>
       <th>Size</th>
-      <th>Converstions</th>
+      <th>Conversions</th>
       <th>CR</th>
     </tr>
     <tr>
@@ -225,7 +215,6 @@
  
   <p>Difference: <span id="diff"></span></p>
   <p>Pvalue: <span id="pvalue"></span></p>
- 
 
 
 </body>
