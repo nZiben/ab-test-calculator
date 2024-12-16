@@ -68,9 +68,9 @@
     }
   </style>
   
-  <!-- Используем официальные ссылки на PyScript -->
-  <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
-  <script defer src="https://pyscript.net/latest/pyscript.js"></script>
+  <!-- Локальные ссылки на PyScript -->
+  <link rel="stylesheet" href="pyscript/pyscript.css" />
+  <script defer src="pyscript/pyscript.js"></script>
 
   <py-config>
     packages = ["numpy", "scipy"]
@@ -82,71 +82,89 @@
     from scipy import stats
 
     def get_data():
-        baseline = float(Element("baseline").element.value)
-        mde = float(Element("mde").element.value)
-        ratio = float(Element("ratio").element.value)
-        power = float(Element("power").element.value)
-        alpha = float(Element("level").element.value)
+        try:
+            baseline = float(Element("baseline").element.value)
+            mde = float(Element("mde").element.value)
+            ratio = float(Element("ratio").element.value)
+            power = float(Element("power").element.value)
+            alpha = float(Element("level").element.value)
 
-        p1 = baseline
-        p2 = baseline + mde
-        p = (p1 + p2) / 2
+            p1 = baseline
+            p2 = baseline + mde
+            p = (p1 + p2) / 2
 
-        # Z-scores for the given alpha and power
-        z_alpha = stats.norm.ppf(1 - alpha / 2)
-        z_beta = stats.norm.ppf(power)
+            # Z-счётчики для заданного alpha и power
+            z_alpha = stats.norm.ppf(1 - alpha / 2)
+            z_beta = stats.norm.ppf(power)
 
-        # Calculate the standard error
-        se = np.sqrt(2 * p * (1 - p) * (1 + 1/ratio))
+            # Стандартная ошибка
+            se = np.sqrt(2 * p * (1 - p) * (1 + 1/ratio))
 
-        # Calculate sample size
-        n = ((z_alpha * np.sqrt(2 * p * (1 - p)) + z_beta * np.sqrt(p1 * (1 - p1) + p2 * (1 - p2) / ratio)) / (p2 - p1))**2
+            # Расчёт размера выборки
+            n = ((z_alpha * np.sqrt(2 * p * (1 - p)) + z_beta * np.sqrt(p1 * (1 - p1) + p2 * (1 - p2) / ratio)) / (p2 - p1))**2
 
-        sample_size = int(np.ceil(n))
+            sample_size = int(np.ceil(n))
 
-        Element('control-group').write(sample_size)
-        Element('test-group').write(int(np.ceil(sample_size * ratio)))
+            Element('control-group').write(sample_size)
+            Element('test-group').write(int(np.ceil(sample_size * ratio)))
+        except Exception as e:
+            Element('control-group').write("Ошибка")
+            Element('test-group').write("Ошибка")
+            print(f"Ошибка в get_data: {e}")
 
     def evaluate_experiment():
-        alpha = float(Element("level").element.value)
+        try:
+            alpha = float(Element("level").element.value)
 
-        actual_cgs = float(Element("actual-cgs").element.value)
-        conversions_c = float(Element("conversions-c").element.value)
-        actual_tgs = float(Element("actual-tgs").element.value)
-        conversions_t = float(Element("conversions-t").element.value)
+            actual_cgs = float(Element("actual-cgs").element.value)
+            conversions_c = float(Element("conversions-c").element.value)
+            actual_tgs = float(Element("actual-tgs").element.value)
+            conversions_t = float(Element("conversions-t").element.value)
 
-        # Proportions
-        p1 = conversions_c / actual_cgs
-        p2 = conversions_t / actual_tgs
-        p = (conversions_c + conversions_t) / (actual_cgs + actual_tgs)
+            # Пропорции
+            p1 = conversions_c / actual_cgs if actual_cgs > 0 else 0
+            p2 = conversions_t / actual_tgs if actual_tgs > 0 else 0
+            p = (conversions_c + conversions_t) / (actual_cgs + actual_tgs) if (actual_cgs + actual_tgs) > 0 else 0
 
-        # Standard error
-        se = np.sqrt(p * (1 - p) * (1 / actual_cgs + 1 / actual_tgs))
+            # Стандартная ошибка
+            se = np.sqrt(p * (1 - p) * (1 / actual_cgs + 1 / actual_tgs)) if actual_cgs > 0 and actual_tgs > 0 else 0
 
-        # Z-score
-        z = (p2 - p1) / se
+            # Z-счёт
+            z = (p2 - p1) / se if se > 0 else 0
 
-        # Two-tailed p-value
-        p_value = 2 * (1 - stats.norm.cdf(abs(z)))
+            # Двухстороннее p-значение
+            p_value = 2 * (1 - stats.norm.cdf(abs(z))) if se > 0 else 1
 
-        difference = p2 - p1
+            difference = p2 - p1
 
-        decision = "Positive" if p_value < alpha else "Negative"
+            decision = "Positive" if p_value < alpha else "Negative"
 
-        Element('cgs').write(int(actual_cgs))
-        Element('tgs').write(int(actual_tgs))
+            Element('cgs').write(int(actual_cgs))
+            Element('tgs').write(int(actual_tgs))
 
-        Element('cntr-c').write(int(conversions_c))
-        Element('test-c').write(int(conversions_t))
+            Element('cntr-c').write(int(conversions_c))
+            Element('test-c').write(int(conversions_t))
 
-        Element('cr-c').write(round(p1, 4))
-        Element('cr-t').write(round(p2, 4))
+            Element('cr-c').write(round(p1, 4))
+            Element('cr-t').write(round(p2, 4))
 
-        Element('diff').write(round(difference, 4))
-        Element('pvalue').write(round(p_value, 5))
+            Element('diff').write(round(difference, 4))
+            Element('pvalue').write(round(p_value, 5))
 
-        Element('decision').write(decision)
-        Element('stat-sig').write(alpha)
+            Element('decision').write(decision)
+            Element('stat-sig').write(alpha)
+        except Exception as e:
+            Element('cgs').write("Ошибка")
+            Element('tgs').write("Ошибка")
+            Element('cntr-c').write("Ошибка")
+            Element('test-c').write("Ошибка")
+            Element('cr-c').write("Ошибка")
+            Element('cr-t').write("Ошибка")
+            Element('diff').write("Ошибка")
+            Element('pvalue').write("Ошибка")
+            Element('decision').write("Ошибка")
+            Element('stat-sig').write("Ошибка")
+            print(f"Ошибка в evaluate_experiment: {e}")
   </script>
 </head>
 <body>
