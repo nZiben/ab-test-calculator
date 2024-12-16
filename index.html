@@ -3,7 +3,6 @@
 <head>
   <title>A/B Test Calculator by Gleb Mikhaylov</title>
   <style>
-    /* Ваши стили остаются без изменений */
     @media only screen and (max-width: 600px) {
       form {
         margin: 10px;
@@ -68,9 +67,11 @@
       padding: 8px;
     }
   </style>
-  <!-- Обновлённые ссылки на PyScript -->
-  <link rel="stylesheet" href="https://unpkg.com/pyscript@latest/pyscript.css" />
-  <script defer src="https://unpkg.com/pyscript@latest/pyscript.js"></script>
+  
+  <!-- Используем официальные ссылки на PyScript -->
+  <link rel="stylesheet" href="https://pyscript.net/alpha/pyscript.css" />
+  <script defer src="https://pyscript.net/alpha/pyscript.js"></script>
+
   <py-config>
     packages = ["numpy","statsmodels"]
   </py-config>
@@ -112,10 +113,7 @@
 
         difference = cr_t - cr_c
 
-        if p_value < alpha:
-            decision = "Positive"
-        else:
-            decision = "Negative"
+        decision = "Positive" if p_value < alpha else "Negative"
 
         Element('cgs').write(round(actual_cgs))
         Element('tgs').write(round(actual_tgs))
@@ -151,14 +149,13 @@
     <label for="level">Significance (Desired maximum FPR):</label>
     <input type="text" id="level" name="level" class="py-input" value="0.05"><br>
 
-    <input type="submit" value="Calculate Sample Sizes" id="btn-load" class="py-button" py-click="get_data()">
+    <input type="submit" value="Calculate Sample Sizes" py-click="get_data()">
   </form>
   <p>Control Group Size: <span id="control-group"></span></p>
   <p>Test Group Size: <span id="test-group"></span></p>
 
   <h1>Evaluate Results of an A/B Test</h1>
   <form onsubmit="return false;">
-
     <label for="actual-cgs">Actual Control Group Size:</label>
     <input type="text" id="actual-cgs" name="actual-cgs" class="py-input" value="1000"><br>
 
@@ -171,7 +168,7 @@
     <label for="conversions-t">Number of Conversions in Test Group:</label>
     <input type="text" id="conversions-t" name="conversions-t" class="py-input" value="40"><br>
 
-    <input type="submit" value="Evaluate Experiment" id="btn-load" class="py-button" py-click="evaluate_experiment()">
+    <input type="submit" value="Evaluate Experiment" py-click="evaluate_experiment()">
   </form>
 
   <p>Decision: <span id="decision"></span></p>
@@ -197,7 +194,7 @@
       <td id="cr-t"></td>
     </tr>
   </table>
-  
+
   <p>Difference: <span id="diff"></span></p>
   <p>Pvalue: <span id="pvalue"></span></p>
 </body>
