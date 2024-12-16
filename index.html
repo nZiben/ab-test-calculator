@@ -69,19 +69,17 @@
   </style>
   
   <!-- Используем официальные ссылки на PyScript -->
-  <link rel="stylesheet" href="https://pyscript.net/alpha/pyscript.css" />
-  <script defer src="https://pyscript.net/alpha/pyscript.js"></script>
+  <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
+  <script defer src="https://pyscript.net/latest/pyscript.js"></script>
 
   <py-config>
-    packages = ["numpy","statsmodels"]
+    packages = ["numpy", "scipy"]
   </py-config>
 
   <script type="py">
     from pyscript import Element
     import numpy as np
-    from statsmodels.stats.power import NormalIndPower
-    import statsmodels.api as sm
-    from statsmodels.stats.proportion import proportions_ztest
+    from scipy import stats
 
     def get_data():
         baseline = float(Element("baseline").element.value)
@@ -90,14 +88,25 @@
         power = float(Element("power").element.value)
         alpha = float(Element("level").element.value)
 
-        analysis = NormalIndPower()
-        effect_size = sm.stats.proportion_effectsize(baseline, baseline + mde)
-        result = analysis.solve_power(effect_size=effect_size, power=power, alpha=alpha, ratio=ratio, alternative='two-sided')
-        sample_size = int(np.ceil(result))
+        p1 = baseline
+        p2 = baseline + mde
+        p = (p1 + p2) / 2
 
-        Element('control-group').write(round(sample_size))
-        Element('test-group').write(round(sample_size * ratio))
-    
+        # Z-scores for the given alpha and power
+        z_alpha = stats.norm.ppf(1 - alpha / 2)
+        z_beta = stats.norm.ppf(power)
+
+        # Calculate the standard error
+        se = np.sqrt(2 * p * (1 - p) * (1 + 1/ratio))
+
+        # Calculate sample size
+        n = ((z_alpha * np.sqrt(2 * p * (1 - p)) + z_beta * np.sqrt(p1 * (1 - p1) + p2 * (1 - p2) / ratio)) / (p2 - p1))**2
+
+        sample_size = int(np.ceil(n))
+
+        Element('control-group').write(sample_size)
+        Element('test-group').write(int(np.ceil(sample_size * ratio)))
+
     def evaluate_experiment():
         alpha = float(Element("level").element.value)
 
@@ -106,23 +115,32 @@
         actual_tgs = float(Element("actual-tgs").element.value)
         conversions_t = float(Element("conversions-t").element.value)
 
-        _, p_value = proportions_ztest([conversions_c, conversions_t], [actual_cgs, actual_tgs], alternative='two-sided')
-        
-        cr_c = conversions_c / actual_cgs
-        cr_t = conversions_t / actual_tgs
+        # Proportions
+        p1 = conversions_c / actual_cgs
+        p2 = conversions_t / actual_tgs
+        p = (conversions_c + conversions_t) / (actual_cgs + actual_tgs)
 
-        difference = cr_t - cr_c
+        # Standard error
+        se = np.sqrt(p * (1 - p) * (1 / actual_cgs + 1 / actual_tgs))
+
+        # Z-score
+        z = (p2 - p1) / se
+
+        # Two-tailed p-value
+        p_value = 2 * (1 - stats.norm.cdf(abs(z)))
+
+        difference = p2 - p1
 
         decision = "Positive" if p_value < alpha else "Negative"
 
-        Element('cgs').write(round(actual_cgs))
-        Element('tgs').write(round(actual_tgs))
+        Element('cgs').write(int(actual_cgs))
+        Element('tgs').write(int(actual_tgs))
 
-        Element('cntr-c').write(round(conversions_c))
-        Element('test-c').write(round(conversions_t))
+        Element('cntr-c').write(int(conversions_c))
+        Element('test-c').write(int(conversions_t))
 
-        Element('cr-c').write(round(cr_c, 4))
-        Element('cr-t').write(round(cr_t, 4))
+        Element('cr-c').write(round(p1, 4))
+        Element('cr-t').write(round(p2, 4))
 
         Element('diff').write(round(difference, 4))
         Element('pvalue').write(round(p_value, 5))
@@ -194,7 +212,7 @@
       <td id="cr-t"></td>
     </tr>
   </table>
-
+  
   <p>Difference: <span id="diff"></span></p>
   <p>Pvalue: <span id="pvalue"></span></p>
 </body>
